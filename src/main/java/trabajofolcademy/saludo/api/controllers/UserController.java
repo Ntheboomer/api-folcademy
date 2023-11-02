@@ -1,9 +1,8 @@
 package trabajofolcademy.saludo.api.controllers;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import trabajofolcademy.saludo.api.Models.Dtos.UserAddDTO;
 import trabajofolcademy.saludo.api.Models.Dtos.UserReadDTO;
 import trabajofolcademy.saludo.api.Services.UserService;
 
@@ -22,4 +21,10 @@ public class UserController {
     public ResponseEntity<List<UserReadDTO>> listall(){
     return ResponseEntity.ok(userService.findAll());
     }
+
+    @PostMapping
+    public ResponseEntity<UserReadDTO> add(@RequestBody UserAddDTO userAddDTO){
+    return ResponseEntity.ok(userService.add(userAddDTO));
+    }
+
 }

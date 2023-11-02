@@ -1,6 +1,7 @@
 package trabajofolcademy.saludo.api.Services;
 
 import org.springframework.stereotype.Service;
+import trabajofolcademy.saludo.api.Models.Dtos.UserAddDTO;
 import trabajofolcademy.saludo.api.Models.Dtos.UserReadDTO;
 import trabajofolcademy.saludo.api.Models.Mappers.UserMapper;
 import trabajofolcademy.saludo.api.Models.Repositories.UserRepository;
@@ -24,6 +25,16 @@ public class UserService {
                 .stream()
                 .map(userMapper::userEntityToUserReadDTO)
                 .collect(Collectors.toList());
+    }
+
+    public UserReadDTO add(UserAddDTO userAddDTO) {
+        return userMapper.userEntityToUserReadDTO(
+                userRepository.save(
+                        userMapper.userAddDTOToUserEntity(userAddDTO)
+                )
+        );
+
+
     }
 
    /* public UserReadDTO add(UserAddDTO userAddDTO) {
