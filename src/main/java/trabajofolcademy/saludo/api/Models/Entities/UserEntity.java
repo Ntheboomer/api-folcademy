@@ -11,7 +11,6 @@ import javax.persistence.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "users")
-
 public class UserEntity {
 
     @Id
@@ -19,15 +18,19 @@ public class UserEntity {
     @Column(name = "id", columnDefinition = "INT UNSIGNED")
     private Integer id;
 
-    @Column(name = "nombre", columnDefinition = "VARCHAR(100)")
+    @Column(name = "name", columnDefinition = "VARCHAR(100)")
     private String name;
 
-    @Column(name = "apellido", columnDefinition = "VARCHAR(100)")
+    @Column(name = "surname", columnDefinition = "VARCHAR(100)")
     private String surname;
+
+    @Column(name = "password", columnDefinition = "VARCHAR(100)")
+    private String password;
 
     @Column(name = "email", columnDefinition = "VARCHAR(100)")
     private String email;
 
-    @Column(name = "contraseña", columnDefinition = "VARCHAR(100)")
-    private String password;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "address_id", referencedColumnName = "id")
+    private AddressEntity address;
 }

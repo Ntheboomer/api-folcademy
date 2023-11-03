@@ -1,64 +1,80 @@
 package trabajofolcademy.saludo.api.Services;
 
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
-import trabajofolcademy.saludo.api.Models.Dtos.UserAddDTO;
-import trabajofolcademy.saludo.api.Models.Dtos.UserReadDTO;
 import trabajofolcademy.saludo.api.Models.Mappers.UserMapper;
-import trabajofolcademy.saludo.api.Models.Repositories.UserRepository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-    private final UserRepository userRepository;
+
     private final UserMapper userMapper;
+    private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
-        this.userRepository = userRepository;
+    private final AutomobileRepository automobileRepository;
+
+    public UserService(UserMapper userMapper, UserRepository userRepository, AutomobileRepository automobileRepository) {
         this.userMapper = userMapper;
+        this.userRepository = userRepository;
+        this.automobileRepository = automobileRepository;
     }
 
-    public List<UserReadDTO> findAll() {
-        return userRepository
-                .findAll()
+    public Page<UserReadDTO> findAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+
+        Page<UserEntity> userEntities = userRepository.findAll(pageable);
+
+        List<UserReadDTO> users = userEntities
                 .stream()
-                .map(userMapper::userEntityToUserReadDTO)
+                .map(userEntity -> {
+                    List<AutomobileEntity> automobileEntities = automobileRepository
+                            .findAllByUserId(userEntity.getId());
+                    return userMapper.userEntityToUserReadDTO(userEntity, automobileEntities);
+                })
                 .collect(Collectors.toList());
+
+        return new PageImpl<>(users, pageable, userEntities.getTotalElements());
+    }
+    public UserReadDTO add(UserAddDTO userAddDTO){
+        Boolean emailExist = userRepository.existsByEmail(userAddDTO.getEmail());
+        if (emailExist) throw new UserBadRequestException("Ya existe usuario con ese email");
+
+        UserEntity userEntity = userMapper.userAddDTOToUserEntity(userAddDTO);
+        userRepository.save(userEntity);
+        return userMapper.userEntityToUserReadDTO(userEntity, null);
+    }
+    public UserReadDTO findById(Integer userId){
+        if (Objects.isNull(userId)) throw new UserBadRequestException("No esta definido el id de usuario");
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("No existe ese usuario"));
+        List<AutomobileEntity> automobileEntities = automobileRepository.findAllByUserId(userId);
+        return userMapper.userEntityToUserReadDTO(userEntity, automobileEntities);
     }
 
-    public UserReadDTO add(UserAddDTO userAddDTO) {
-        return userMapper.userEntityToUserReadDTO(
-                userRepository.save(
-                        userMapper.userAddDTOToUserEntity(userAddDTO)
-                )
-        );
-
-
+    public UserReadDTO deleteById(Integer userId) {
+        if (Objects.isNull(userId)) throw new UserBadRequestException("No esta definido el id de usuario");
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(()-> new UserNotFoundException("No se encontro el usuario con el id especificado"));
+        List<AutomobileEntity> automobileEntities = automobileRepository.findAllByUserId(userId);
+        UserReadDTO user = userMapper.userEntityToUserReadDTO(userEntity, automobileEntities);
+        userRepository.delete(userEntity);
+        automobileRepository.deleteAll(automobileEntities);
+        return user;
     }
 
-   /* public UserReadDTO add(UserAddDTO userAddDTO) {
-        return userMapper.userEntityToUserReadDTO(
-                userRepository.save(
-                        userMapper.userAddDTOToUserEntity(userAddDTO)
-                )
-        );
+    public UserReadDTO edit(Integer userId, UserEditDTO userEditDTO) {
+        if (Objects.isNull(userId)) throw new UserBadRequestException("No esta definido el id de usuario");
+
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(()-> new UserNotFoundException("No se encontro el usuario con el id especificado"));
+        List<AutomobileEntity> automobileEntities = automobileRepository.findAllByUserId(userId);
+
+        UserEntity newUser = userMapper.userEditDTOToUserEntity(userEntity, userEditDTO);
+        userRepository.save(newUser);
+        return userMapper.userEntityToUserReadDTO(newUser, automobileEntities);
+
     }
-
-    public UserReadDTO findById(Integer userId) {
-        return userRepository
-                .findById(userId)
-                .map(userEntity -> userMapper.userEntityToUserReadDTO(userEntity))
-                .orElseThrow(()-> new UserNotFoundException("No se encontro un usuario con ese identificador"));
-    }
-
-    public UserReadDTO findUserById(Integer userId) {
-        Optional<UserEntity> userEntityOptional = userRepository.findById(userId);
-
-        if(userEntityOptional.isEmpty()) {
-            throw new UserNotFoundException("No se encontro un usuario con ese identificador");
-        }
-
-        return userMapper.userEntityToUserReadDTO(userEntityOptional.get());
-    } */
 }
